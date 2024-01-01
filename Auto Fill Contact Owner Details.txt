@@ -1,0 +1,17 @@
+contact= zoho.crm.getRecordById("Contacts",cid);
+info contact;
+userTypeMap = Map();
+userTypeMap.put("type","ActiveUsers");
+response = zoho.crm.invokeConnector("crm.getusers",userTypeMap);
+k = response.get("response").get("users");
+for each  s in k
+{
+	if(s.get("id") == contact.getJson("Owner").getJson("id"))
+	{
+		m = Map();
+		m.put("Contact_Owner_Email",s.get("email"));
+		m.put("Contact_Owner_Phone",s.get("phone"));
+		upt = zoho.crm.updateRecord("Contacts",cid,m);
+		info upt;
+	}
+}

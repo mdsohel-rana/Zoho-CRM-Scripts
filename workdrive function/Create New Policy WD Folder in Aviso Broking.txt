@@ -1,0 +1,71 @@
+policy = zoho.crm.getRecordById("Policies",Polid);
+client = ifNull(policy.get("Client_Name"),"");
+if(client != "")
+{
+	clientid = policy.get("Client_Name").get("id");
+	cldetail = zoho.crm.getRecordById("Accounts",clientid);
+	clientName = cldetail.getJSON("Account_Name");
+	clwdfolder = cldetail.get("zohoworkdriveforcrm__Workdrive_Folder_ID");
+	From_Date1 = ifNull(policy.get("From_Date"),"0000-00-00");
+	//info From_Date1 ;
+	if(From_Date1 != "0000-00-00")
+	{
+		fromdate = From_Date1.Tostring("dd-MM-yyyy");
+		//info fromdate;
+	}
+	To_Date1 = ifNull(policy.get("To_Date"),"0000-00-00");
+	if(To_Date1 != "0000-00-00")
+	{
+		todate = To_Date1.ToString("dd-MM-yyyy");
+		//info todate;
+	}
+	policyName = policy.get("Name");
+	ClassOfRisk = ifNull(policy.get("Class_of_Risk"),"");
+	if(ClassOfRisk != "")
+	{
+		ClassOfRiskName = ClassOfRisk.get("Name");
+	}
+	PolicyFolderName = clientName + " - " + policyName + " - " + ClassOfRiskName + " - " + fromdate + " to " + todate;
+	header = Map();
+	header.put("Accept","application/vnd.api+json");
+	response = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/workdrive/api/v1/files/" + clwdfolder + "/files?page%5Blimit%5D=50&page%5Boffset%5D=0"
+		type :GET
+		parameters:clwdfolder.toString()
+		headers:header
+		connection:"workdrive"
+	];
+	AccountSubFolders = response.getJSON("data");
+	for each  folder in AccountSubFolders
+	{
+		name = folder.get('attributes').get('name');
+		if(name == "Policies")
+		{
+			PolicieFolderId = folder.get('id');
+			//	info PolicieFolderId ;
+			response1 = invokeurl
+			[
+				url :"https://www.zohoapis.com.au/workdrive/api/v1/files/" + PolicieFolderId + "/files?page%5Blimit%5D=50&page%5Boffset%5D=0"
+				type :GET
+				headers:header
+				connection:"workdrive"
+			];
+			//info response1 ;
+			YearFolder = ifNull(response1.getJSON("data"),000);
+			//	info YearFolder ;
+			if(YearFolder != 000)
+			{
+				YearFolderId = YearFolder.getJSON('id');
+				//info YearFolderId;
+				Policy_Folder = zoho.workdrive.createFolder(PolicyFolderName,YearFolderId,"workdrive");
+				Policy_Folder_Id = Policy_Folder.get("data").get("id");
+				info Policy_Folder;
+				param = Map();
+				param.put("Policy_WorkDrive_Folder_Id",Policy_Folder_Id);
+				Res = zoho.crm.updateRecord("Policies",Polid,param);
+			}
+			//info Res ;
+		}
+	}
+}

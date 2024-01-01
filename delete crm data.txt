@@ -1,0 +1,21 @@
+records = {553143,599139,571843,594562,553553,552682};
+if(records.size() >= 1)
+{
+	for each  externalFieldAPValue in records
+	{
+		headers = Map();
+		headers.put("X-EXTERNAL","Policies.INSIGHT_ID");
+		response1 = invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v2.1/Policies/" + externalFieldAPValue
+			type :DELETE
+			headers:headers
+			connection:"avisio_broking_current_policies"
+		];
+		info externalFieldAPValue;
+	}
+}
+else
+{
+	info "gggggggggg";
+}

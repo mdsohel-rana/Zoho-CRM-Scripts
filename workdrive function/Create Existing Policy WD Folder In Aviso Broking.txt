@@ -1,0 +1,110 @@
+total_policy = 2500;
+pages = total_policy / 100;
+total_page = pages.truncate(0);
+frac_page = pages.frac();
+if(frac_page != 0.00)
+{
+	total_page = total_page + 1;
+}
+iterationString = "".leftPad(total_page);
+stringLength = iterationString.length();
+iterationString = iterationString.replaceAll(" ",",");
+iterationString = iterationString.subString(0,iterationString.length() - 1);
+loops = iterationString.toList();
+page = 0;
+offset = 0;
+moreRecords = 1;
+Created_Year = getYear(now);
+for each  el in loops
+{
+	if(moreRecords == 1)
+	{
+		queryMap1 = Map();
+		queryMap1.put("select_query","select Client_Name.Account_Name as ClientName, Client_Name.zohoworkdriveforcrm__Workdrive_Folder_ID as ClientWorkdriveId,Class_of_Risk.Name as ClassOfRiskName, Name,To_Date,From_Date from Policies where (Client_Name is not null and  Policy_WorkDrive_Folder_Id is null)   LIMIT " + offset + ", 100");
+		response1 = invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v3/coql"
+			type :POST
+			parameters:queryMap1.toString()
+			connection:"avisio_broking_current_policies"
+		];
+		records = ifNull(response1.get("data"),null);
+		if(records.size() >= 1)
+		{
+			//info records ;
+			for each  policy in records
+			{
+				//	info policy ;
+				Polid = policy.get("id");
+				info Polid;
+				policyName = policy.get("Name");
+				//info policyName;
+				From_Date1 = ifNull(policy.get("From_Date"),"0000-00-00");
+				//info From_Date1 ;
+				if(From_Date1 != "0000-00-00")
+				{
+					fromdate = From_Date1.Tostring("dd-MM-yyyy");
+					//info fromdate;
+				}
+				To_Date1 = ifNull(policy.get("To_Date"),"0000-00-00");
+				if(To_Date1 != "0000-00-00")
+				{
+					todate = To_Date1.ToString("dd-MM-yyyy");
+					//info todate;
+				}
+				clientName = policy.get("ClientName");
+				clientFolderId = policy.get("ClientWorkdriveId");
+				ClassOfRisk = ifNull(policy.get("ClassOfRiskName")," ");
+				//info ClassOfRisk;
+				PolicyFolderName = clientName + " - " + policyName + " - " + ClassOfRisk + " - " + fromdate + " to " + todate;
+				header = Map();
+				header.put("Accept","application/vnd.api+json");
+				response = invokeurl
+				[
+					url :"https://www.zohoapis.com.au/workdrive/api/v1/files/" + clientFolderId + "/files?page%5Blimit%5D=50&page%5Boffset%5D=0"
+					type :GET
+					headers:header
+					connection:"workdrive"
+				];
+				AccountSubFolders = response.getJSON("data");
+				for each  folder in AccountSubFolders
+				{
+					name = folder.get('attributes').get('name');
+					if(name == "Policies")
+					{
+						PolicieFolderId = folder.get('id');
+						//	info PolicieFolderId ;
+						response1 = invokeurl
+						[
+							url :"https://www.zohoapis.com.au/workdrive/api/v1/files/" + PolicieFolderId + "/files?page%5Blimit%5D=50&page%5Boffset%5D=0"
+							type :GET
+							headers:header
+							connection:"workdrive"
+						];
+						//info response1 ;
+						YearFolder = ifNull(response1.getJSON("data"),000);
+						//	info YearFolder ;
+						if(YearFolder != 000)
+						{
+							YearFolderId = YearFolder.getJSON('id');
+							//info YearFolderId;
+							Policy_Folder = zoho.workdrive.createFolder(PolicyFolderName,YearFolderId,"workdrive");
+							Policy_Folder_Id = Policy_Folder.get("data").get("id");
+							info Policy_Folder;
+							param = Map();
+							param.put("Policy_WorkDrive_Folder_Id",Policy_Folder_Id);
+							Res = zoho.crm.updateRecord("Policies",Polid,param);
+						}
+						//info Res ;
+					}
+				}
+			}
+		}
+		else
+		{
+			moreRecords = 0;
+		}
+	}
+	page = page + 1;
+	offset = offset + 100;
+}

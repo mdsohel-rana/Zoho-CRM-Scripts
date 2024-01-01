@@ -1,0 +1,56 @@
+ContactRespose = zoho.crm.getRecordById("Contacts",contactId);
+Client = ContactRespose.get('Account_Name');
+ContactEmail = ContactRespose.get('Email');
+if(Client != null)
+{
+	ClientId = Client.get('id');
+	if(ClientId != null)
+	{
+		queryMap = Map();
+		queryMap.put("select_query","select Email from Policies where (Client_Name.id = " + ClientId + ") limit 200");
+		PolicyResponse = invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v3/coql"
+			type :POST
+			parameters:queryMap.toString()
+			connection:"avisio_broking_current_policies"
+		];
+		recordData = PolicyResponse.get("data");
+		if(recordData.size() >= 1)
+		{
+			for each  record in recordData
+			{
+				PolicyEmail = record.get('Email');
+				if(PolicyEmail != ContactEmail)
+				{
+					pId = record.get("id");
+					contactinfo = {"Email":ContactEmail};
+					updateResponse = zoho.crm.updateRecord("Policies",pId,contactinfo);
+				}
+			}
+		}
+		queryMap1 = Map();
+		queryMap.put("select_query","select Email from Policy_Transactions where (Policy_Client.id = " + ClientId + ") limit 200");
+		PolicyTransactionResponse = invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v3/coql"
+			type :POST
+			parameters:queryMap.toString()
+			connection:"avisio_broking_current_policies"
+		];
+		recordData1 = PolicyTransactionResponse.get("data");
+		if(recordData1.size() >= 1)
+		{
+			for each  record1 in recordData1
+			{
+				PolicyTransactionEmail = record1.get('Email');
+				if(PolicyTransactionEmail != ContactEmail)
+				{
+					pTId = record1.get("id");
+					contactinfo1 = {"Email":ContactEmail};
+					updateResponse = zoho.crm.updateRecord("Policy_Transactions",pTId,contactinfo1);
+				}
+			}
+		}
+	}
+}

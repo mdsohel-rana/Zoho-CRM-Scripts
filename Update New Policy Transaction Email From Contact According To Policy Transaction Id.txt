@@ -1,0 +1,26 @@
+res = zoho.crm.getRecordById("Policy_Transactions",pId);
+Client = res.get('Policy_Client');
+if(Client != null)
+{
+	ClientId = Client.get('id');
+	queryMap = Map();
+	queryMap.put("select_query","select Email from Contacts where (Account_Name.id = " + ClientId + " and Primary_Contact =true) limit 200");
+	response = invokeurl
+	[
+		url :"https://www.zohoapis.com.au/crm/v3/coql"
+		type :POST
+		parameters:queryMap.toString()
+		connection:"avisio_current_policies"
+	];
+	recordData = ifNull(response.get("data"),null);
+	if(recordData != "")
+	{
+		contactEmail = recordData.getJson('Email');
+		if(contactEmail != null)
+		{
+			contactinfo = {"Email":contactEmail};
+			updateResponse = zoho.crm.updateRecord("Policy_Transactions",pId,contactinfo);
+			info updateResponse;
+		}
+	}
+}

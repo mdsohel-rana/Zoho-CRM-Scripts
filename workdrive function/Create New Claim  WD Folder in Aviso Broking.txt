@@ -1,0 +1,68 @@
+claim = zoho.crm.getRecordById("Claims",id);
+info claim;
+info "========";
+client = claim.get("Client").get("id");
+info client;
+dol = claim.get("Date_of_Loss");
+doldate = dol.Tostring("dd-MM-yyyy");
+info doldate;
+claimpol = claim.get("Policy").get("name");
+info claimpol;
+//claimdol = claim.get("Date_of_Loss");
+//info claimdol;
+claimdesc = claim.get("Claim_Description");
+info claimdesc;
+cldetail = zoho.crm.getRecordById("Accounts",client);
+clwdfolder = cldetail.get("zohoworkdriveforcrm__Workdrive_Folder_ID");
+info client;
+info cldetail;
+info clwdfolder;
+header = Map();
+header.put("Accept","application/vnd.api+json");
+response = invokeurl
+[
+	url :"https://www.zohoapis.com.au/workdrive/api/v1/files/" + clwdfolder + "/files?page%5Blimit%5D=50&page%5Boffset%5D=0"
+	type :GET
+	parameters:clwdfolder.toString()
+	headers:header
+	connection:"workdrive"
+];
+mark = list();
+//info response;
+//info "============";
+jason = response.getJSON("data");
+for each  thing in jason
+{
+	mark.add(thing.getJSON("id"));
+	mark.add(thing.getJSON("attributes").getJSON("display_attr_name"));
+	//+ " " + thing.getJSON("attributes").getJSON("download_url"));
+	//mark.add("Folder URL",thing.getJSON("attributes").getJSON("download_url"));
+	//mark.add("Folder Name",thing.getJSON("attributes").getJSON("display_attr_name"));
+}
+//mark.sort(true);
+info mark;
+Claims = list();
+Claims.add(mark.get(1));
+Claims.add(mark.get(0));
+Correspondence = list();
+Correspondence.add(mark.get(5));
+Correspondence.add(mark.get(4));
+Policies = List();
+Policies.add(mark.get(3));
+Policies.add(mark.get(2));
+//info Claims;
+//info "=====";
+//info Correspondence;
+//info "=====";
+//info Policies;
+//info "=====";
+ClaimsFolder = Claims.get(1);
+info "Claim Folder " + ClaimsFolder;
+CorrespondenceFolder = Correspondence.get(1);
+info "Correspondence Folder " + CorrespondenceFolder;
+PoliciesFolder = Policies.get(1);
+info "Policies Folder " + PoliciesFolder;
+//name = client.getJSON("Account_Name");
+//Info name;
+resposne = zoho.workdrive.createFolder("Claim: " + claimpol + " - Date of Loss: " + doldate + " - " + claimdesc,ClaimsFolder,"workdrive");
+info response;

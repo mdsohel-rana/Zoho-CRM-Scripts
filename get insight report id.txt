@@ -1,0 +1,48 @@
+total_policy = 5000;
+pages = total_policy / 200;
+total_page = pages.truncate(0);
+frac_page = pages.frac();
+if(frac_page != 0.00)
+{
+	total_page = total_page + 1;
+}
+iterationString = "".leftPad(total_page);
+stringLength = iterationString.length();
+iterationString = iterationString.replaceAll(" ",",");
+iterationString = iterationString.subString(0,iterationString.length() - 1);
+loops = iterationString.toList();
+page = 0;
+offset = 10000;
+SuccessRecordCount = 0;
+FailedRecordCount = 0;
+moreRecords = 1;
+Created_Year = getYear(now);
+for each  el in loops
+{
+	if(moreRecords == 1)
+	{
+		queryMap1 = Map();
+		queryMap1.put("select_query","select Report_Insight_Id from Policies where Client_Name is null and modified_time is today) LIMIT " + offset + ", 200");
+		response1 = invokeurl
+		[
+			url :"https://www.zohoapis.com.au/crm/v3/coql"
+			type :POST
+			parameters:queryMap1.toString()
+			connection:"avisio_broking_current_policies"
+		];
+		records = ifNull(response1.get("data"),null);
+		if(records.size() >= 1)
+		{
+			for each  recordInfo in records
+			{
+				info recordInfo.get("Report_Insight_Id");
+			}
+		}
+		else
+		{
+			moreRecords = 0;
+		}
+	}
+	page = page + 1;
+	offset = offset + 200;
+}

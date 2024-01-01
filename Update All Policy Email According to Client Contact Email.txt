@@ -1,0 +1,69 @@
+response1 = invokeurl
+[
+	url :"https://www.zohoapis.com.au/crm/v2.1/Policies/actions/count"
+	type :GET
+	connection:"workdrive"
+];
+total_policy = response1.get("count");
+pages = total_policy / 200;
+total_page = pages.truncate(0);
+frac_page = pages.frac();
+if(frac_page != 0.00)
+{
+	total_page = total_page + 1;
+}
+iterationString = "".leftPad(total_page);
+stringLength = iterationString.length();
+iterationString = iterationString.replaceAll(" ",",");
+iterationString = iterationString.subString(0,iterationString.length() - 1);
+loops = iterationString.toList();
+page = 1;
+recordcount = 1;
+moreRecords = 1;
+Created_Year = getYear(now);
+for each  el in loops
+{
+	if(moreRecords == 1)
+	{
+		info moreRecords;
+		records = zoho.crm.getRecords("Policies",page,200);
+		if(records.size() >= 1)
+		{
+			for each  recordInfo in records
+			{
+				pId = recordInfo.get("id");
+				Client = recordInfo.get('Client_Name');
+				if(Client != null)
+				{
+					ClientId = Client.get('id');
+					queryMap = Map();
+					queryMap.put("select_query","select Email from Contacts where (Account_Name.id = " + ClientId + " and Primary_Contact =true)");
+					response = invokeurl
+					[
+						url :"https://www.zohoapis.com.au/crm/v3/coql"
+						type :POST
+						parameters:queryMap.toString()
+						connection:"avisio_current_policies"
+					];
+					recordData = ifNull(response.get("data"),null);
+					if(recordData != null)
+					{
+						contactEmail = recordData.getJson('Email');
+						if(contactEmail != null)
+						{
+							contactinfo = {"Email":contactEmail};
+							updateResponse = zoho.crm.updateRecord("Policies",pId,contactinfo);
+							recordcount = recordcount + 1;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			moreRecords = 0;
+		}
+	}
+	page = page + 1;
+}
+info recordcount;
